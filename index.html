@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>유리수 순환소수 빈출유형(1)</title>
+  <style>
+    body {
+      background-color: white;
+      color: black;
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    #startScreen, #gameScreen, #gameOverScreen {
+      max-width: 600px;
+      margin: auto;
+      text-align: center;
+    }
+    input, select, button {
+      font-size: 1rem;
+      padding: 8px;
+      margin: 5px;
+    }
+    #gameInfo {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    #energyContainer {
+      width: 100%;
+      height: 20px;
+      border: 1px solid black;
+      margin-bottom: 15px;
+      position: relative;
+    }
+    #energyBar {
+      height: 100%;
+      width: 100%;
+      background-color: black;
+      transition: width 0.1s linear;
+    }
+    #questionContainer {
+      text-align: left;
+      margin-bottom: 15px;
+    }
+    .optionButton {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid black;
+      background-color: white;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .optionButton:hover {
+      background-color: #ddd;
+    }
+    #feedback {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+</head>
+<body>
+  <!-- 시작 화면 -->
+  <div id="startScreen">
+    <h1>유리수 순환소수 빈출유형(1)</h1>
+    <input type="text" id="playerName" placeholder="이름을 입력하세요">
+    <br>
+    <select id="difficulty">
+      <option value="최상">최상</option>
+      <option value="상">상</option>
+      <option value="중">중</option>
+      <option value="하">하</option>
+    </select>
+    <br>
+    <button id="startButton">시작</button>
+  </div>
+
+  <!-- 게임 화면 -->
+  <div id="gameScreen" style="display:none;">
+    <div id="gameInfo">
+      <div id="scoreDisplay">점수: 0</div>
+      <div id="livesDisplay">남은 기회: 3</div>
+      <div id="timeDisplay">전체 시간: 0초</div>
+    </div>
+    <div id="energyContainer">
+      <div id="energyBar"></div>
+    </div>
+    <div id="questionContainer"></div>
+    <div id="feedback"></div>
+  </div>
+
+  <!-- 게임 종료 화면 -->
+  <div id="gameOverScreen" style="display:none; text-align:center;">
+    <h2>게임 종료</h2>
+    <p id="finalScore"></p>
+    <button id="sendScoreButton">점수전송</button>
+    <pre id="response"></pre>
+  </div>
+
+  <script>
+    // 문제 데이터 (원본 4문제 + 추가 10문제 = 14문제)
+    const questions = [
+      {
+        question: "분수 \\(\\dfrac{A}{460}\\)가 다음 조건을 만족할 때, \\(A\\)의 값은?<br>(가) \\(A\\)는 3의 배수이고, 두 자리 자연수이다.<br>(나) \\(\\dfrac{A}{460}\\)을 소수로 나타내면 유한소수가 된다.",
+        options: ["66", "69", "72", "75", "78"],
+        answer: "69"
+      },
+      {
+        question: "두 분수 \\(\\dfrac{13}{55}\\), \\(\\dfrac{42}{90}\\)에 어떤 자연수 \\(a\\)를 곱하면 모두 유한소수가 된다고 할 때, 가장 큰 두 자리 자연수 \\(a\\)는?",
+        options: ["15", "33", "55", "77", "99"],
+        answer: "99"
+      },
+      {
+        question: "분수 \\(\\dfrac{2}{7}\\)를 소수로 나타내었을 때 소수점 아래 24번째 자리 수를 \\(a\\), 38번째 자리 수를 \\(b\\)라 할 때, \\(a+b\\)의 값은?",
+        options: ["3", "6", "9", "12", "15"],
+        answer: "12"
+      },
+      {
+        question: "분수 \\(\\dfrac{5}{7}\\)을 소수로 나타내었을 때, 소수점 아래 \\(n\\)번째 자리의 숫자를 \\(f(n)\\)이라 할 때, \\(f(55)+f(57)+f(59)\\)의 값은?",
+        options: ["8", "10", "13", "16", "19"],
+        answer: "19"
+      },
+      {
+        question: "분수 \\(\\dfrac{A}{180}\\)가 다음 조건을 만족할 때, \\(A\\)의 값은?<br>(가) \\(A\\)는 두 자리 자연수이며 \\(9\\)와 \\(7\\)의 공배수이다.<br>(나) \\(\\dfrac{A}{180}\\)을 소수로 나타내면 유한소수가 된다.",
+        options: ["42", "63", "84", "56", "72"],
+        answer: "63"
+      },
+      {
+        question: "두 분수 \\(\\dfrac{11}{35}\\)와 \\(\\dfrac{28}{96}\\)에 어떤 자연수 \\(a\\)를 곱하면 모두 유한소수가 된다고 할 때, 가장 큰 두 자리 자연수 \\(a\\)는?",
+        options: ["21", "42", "63", "84", "96"],
+        answer: "84"
+      },
+      {
+        question: "분수 \\(\\dfrac{3}{7}\\)를 소수로 나타내었을 때 소수점 아래 10번째 자리와 25번째 자리의 숫자를 각각 \\(a\\)와 \\(b\\)라 할 때, \\(a+b\\)의 값은?",
+        options: ["7", "8", "9", "10", "11"],
+        answer: "9"
+      },
+      {
+        question: "분수 \\(\\dfrac{4}{7}\\)를 소수로 나타내었을 때, 소수점 아래 \\(n\\)번째 자리의 숫자를 \\(f(n)\\)이라 할 때, \\(f(8)+f(11)+f(14)\\)의 값은?",
+        options: ["13", "14", "15", "16", "17"],
+        answer: "16"
+      },
+      {
+        question: "분수 \\(\\dfrac{A}{150}\\)가 다음 조건을 만족할 때, 가장 큰 두 자리 자연수 \\(A\\)는?<br>(가) \\(A\\)는 15의 배수이다.<br>(나) \\(\\dfrac{A}{150}\\)를 소수로 나타내면 유한소수가 된다.",
+        options: ["15", "30", "60", "75", "90"],
+        answer: "90"
+      },
+      {
+        question: "두 분수 \\(\\dfrac{17}{68}\\)와 \\(\\dfrac{25}{42}\\)에 어떤 자연수 \\(a\\)를 곱하면 모두 유한소수가 된다고 할 때, 가장 큰 두 자리 자연수 \\(a\\)는?",
+        options: ["42", "56", "63", "84", "91"],
+        answer: "84"
+      },
+      {
+        question: "분수 \\(\\dfrac{B}{385}\\)가 유한소수가 되게 하는 두 자리 자연수 \\(B\\) 중 가장 작은 수는?",
+        options: ["55", "66", "77", "88", "99"],
+        answer: "77"
+      },
+      {
+        question: "분수 \\(\\dfrac{9}{14}\\)를 소수로 나타내었을 때, 소수점 아래 15번째 자리와 22번째 자리의 숫자를 각각 \\(a\\)와 \\(b\\)라 할 때, \\(a\\times b\\)의 값은?",
+        options: ["12", "14", "16", "18", "20"],
+        answer: "16"
+      },
+      {
+        question: "분수 \\(\\dfrac{3}{11}\\)를 소수로 나타내었을 때, 소수점 아래 5번째 자리 수를 \\(a\\)라 할 때, \\(a\\)의 값은?",
+        options: ["1", "2", "3", "4", "5"],
+        answer: "2"
+      },
+      {
+        question: "분수 \\(\\dfrac{8}{13}\\)을 소수로 나타내었을 때, 소수점 아래 \\(n\\)번째 자리의 숫자를 \\(f(n)\\)이라 할 때, \\(f(4)+f(8)\\)의 값은?",
+        options: ["2", "3", "4", "5", "6"],
+        answer: "4"
+      }
+    ];
+
+    // 전역 변수들
+    let shuffledQuestions = [];
+    let currentQuestionIndex = 0;
+    let currentQuestionObj = null;
+    let score = 0;
+    let lives = 3;
+    let overallStartTime = null;
+    let overallTimerInterval = null;
+    let questionTimerInterval = null;
+    let questionTimeLimit = 0; // 초 단위 (하: 무제한)
+    let difficulty = "최상";
+    let scorePerQuestion = 20; // 기본 (최상:20, 상:15, 중:13, 하:10)
+
+    // Fisher-Yates shuffle
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // 시작 버튼 클릭
+    document.getElementById("startButton").addEventListener("click", startGame);
+
+    function startGame() {
+      const nameInput = document.getElementById("playerName").value.trim();
+      if (!nameInput) {
+        alert("이름을 입력하세요.");
+        return;
+      }
+      difficulty = document.getElementById("difficulty").value;
+      switch(difficulty) {
+        case "최상":
+          scorePerQuestion = 20;
+          questionTimeLimit = 20;
+          break;
+        case "상":
+          scorePerQuestion = 15;
+          questionTimeLimit = 30;
+          break;
+        case "중":
+          scorePerQuestion = 13;
+          questionTimeLimit = 40;
+          break;
+        case "하":
+          scorePerQuestion = 10;
+          questionTimeLimit = 0; // 시간 제한 없음
+          break;
+      }
+      // 초기화
+      score = 0;
+      lives = 3;
+      currentQuestionIndex = 0;
+      shuffledQuestions = shuffleArray(questions.slice());
+      overallStartTime = Date.now();
+      document.getElementById("scoreDisplay").innerText = "점수: " + score;
+      document.getElementById("livesDisplay").innerText = "남은 기회: " + lives;
+      document.getElementById("timeDisplay").innerText = "전체 시간: 0초";
+      document.getElementById("startScreen").style.display = "none";
+      document.getElementById("gameOverScreen").style.display = "none";
+      document.getElementById("gameScreen").style.display = "block";
+      // 전체 시간 타이머
+      overallTimerInterval = setInterval(updateOverallTime, 1000);
+      nextQuestion();
+    }
+
+    // 업데이트: 전체 경과 시간 표시
+    function updateOverallTime() {
+      const elapsed = Math.floor((Date.now() - overallStartTime) / 1000);
+      document.getElementById("timeDisplay").innerText = "전체 시간: " + elapsed + "초";
+    }
+
+    // 다음 문제 표시
+    function nextQuestion() {
+      // Clear any existing question timer
+      clearInterval(questionTimerInterval);
+      // 만약 모든 문제를 다 썼다면, 이후엔 무작위 출제
+      if (currentQuestionIndex < shuffledQuestions.length) {
+        currentQuestionObj = shuffledQuestions[currentQuestionIndex];
+        currentQuestionIndex++;
+      } else {
+        currentQuestionObj = questions[Math.floor(Math.random() * questions.length)];
+      }
+
+      // 옵션 섞기
+      const options = shuffleArray(currentQuestionObj.options.slice());
+      // 문제와 옵션 HTML 구성
+      const questionHTML = `<div>${currentQuestionObj.question}</div>`;
+      let optionsHTML = "";
+      options.forEach(option => {
+        optionsHTML += `<button class="optionButton">${option}</button>`;
+      });
+      document.getElementById("questionContainer").innerHTML = questionHTML + optionsHTML;
+      document.getElementById("feedback").innerText = "";
+      MathJax.typeset(); // 수식 렌더링
+
+      // 옵션 버튼 클릭 이벤트 등록
+      const optionButtons = document.querySelectorAll(".optionButton");
+      optionButtons.forEach(button => {
+        button.addEventListener("click", function() {
+          handleAnswer(button.innerText);
+        });
+      });
+
+      // 에너지바 초기화 및 타이머 시작 (시간 제한이 있을 때만)
+      if (questionTimeLimit > 0) {
+        startQuestionTimer(questionTimeLimit);
+      } else {
+        // 시간 제한 없음: 에너지바를 숨김
+        document.getElementById("energyContainer").style.display = "none";
+      }
+    }
+
+    // 질문별 타이머 (에너지바)
+    function startQuestionTimer(limitSeconds) {
+      document.getElementById("energyContainer").style.display = "block";
+      const energyBar = document.getElementById("energyBar");
+      const startTime = Date.now();
+      questionTimerInterval = setInterval(function() {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const remaining = Math.max(limitSeconds - elapsed, 0);
+        const percent = (remaining / limitSeconds) * 100;
+        energyBar.style.width = percent + "%";
+        if (remaining <= 0) {
+          clearInterval(questionTimerInterval);
+          handleAnswer(null); // 시간 초과 -> 오답 처리
+        }
+      }, 100);
+    }
+
+    // 답안 처리
+    function handleAnswer(selected) {
+      clearInterval(questionTimerInterval);
+      // 시간 제한이 없는 경우에도 ensure 에너지바가 full next time
+      document.getElementById("energyBar").style.width = "100%";
+      const feedbackDiv = document.getElementById("feedback");
+      // 정답 확인
+      if (selected === null) {
+        feedbackDiv.innerHTML = "시간 초과! 정답: " + currentQuestionObj.answer;
+        lives--;
+      } else if (selected === currentQuestionObj.answer) {
+        feedbackDiv.innerHTML = "정답!";
+        score += scorePerQuestion;
+      } else {
+        feedbackDiv.innerHTML = "오답! 정답: " + currentQuestionObj.answer;
+        lives--;
+      }
+      document.getElementById("scoreDisplay").innerText = "점수: " + score;
+      document.getElementById("livesDisplay").innerText = "남은 기회: " + lives;
+      MathJax.typeset(); // 렌더링
+
+      // 3번 틀리면 게임 종료
+      if (lives <= 0) {
+        setTimeout(gameOver, 1000);
+      } else {
+        setTimeout(nextQuestion, 1000);
+      }
+    }
+
+    // 게임 종료 처리
+    function gameOver() {
+      clearInterval(overallTimerInterval);
+      document.getElementById("gameScreen").style.display = "none";
+      document.getElementById("gameOverScreen").style.display = "block";
+      document.getElementById("finalScore").innerText = "최종 점수: " + score;
+    }
+
+    // 점수전송 함수 (서버 전송)
+    function saveData(game, name, score, elapsedTime) {
+      const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
+
+      const requestData = {
+          game,
+          name,
+          score: parseInt(score, 10),
+          elapsedTime: parseInt(elapsedTime, 10)
+      };
+
+      try {
+          const response = fetch(FUNCTION_URL, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(requestData)
+          });
+
+          const responseData = response.json();
+
+          if (response.ok) {
+              document.getElementById('response').innerText = 
+                  `성공: ${JSON.stringify(responseData, null, 2)}`;
+          } else {
+              document.getElementById('response').innerText = 
+                  `오류: ${JSON.stringify(responseData, null, 2)}`;
+          }
+      } catch (error) {
+          console.error('요청 실패:', error);
+          document.getElementById('response').innerText = 
+              `네트워크 오류: ${error.message}`;
+      }
+    }
+
+    // 점수전송 버튼 클릭 이벤트
+    document.getElementById("sendScoreButton").addEventListener("click", function() {
+      const elapsedTime = Math.floor((Date.now() - overallStartTime) / 1000);
+      const playerName = document.getElementById("playerName").value.trim();
+      saveData("유리수 순환소수 빈출유형(1)", playerName, score, elapsedTime);
+    });
+  </script>
+</body>
+</html>
