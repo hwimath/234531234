@@ -62,6 +62,10 @@
       margin-top: 10px;
       font-weight: bold;
     }
+    /* 다음문제 버튼 컨테이너 */
+    #nextQuestionContainer {
+      margin-top: 10px;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
 </head>
@@ -93,6 +97,8 @@
     </div>
     <div id="questionContainer"></div>
     <div id="feedback"></div>
+    <!-- 다음문제 버튼이 생성될 영역 -->
+    <div id="nextQuestionContainer"></div>
   </div>
 
   <!-- 게임 종료 화면 -->
@@ -253,9 +259,12 @@
 
     // 다음 문제 표시
     function nextQuestion() {
-      // Clear any existing question timer
+      // 기존 질문 타이머 및 피드백, 다음문제 버튼 초기화
       clearInterval(questionTimerInterval);
-      // 만약 모든 문제를 다 썼다면, 이후엔 무작위 출제
+      document.getElementById("feedback").innerText = "";
+      document.getElementById("nextQuestionContainer").innerHTML = "";
+      
+      // 남은 문제를 다 사용했다면 이후엔 무작위 출제
       if (currentQuestionIndex < shuffledQuestions.length) {
         currentQuestionObj = shuffledQuestions[currentQuestionIndex];
         currentQuestionIndex++;
@@ -272,7 +281,6 @@
         optionsHTML += `<button class="optionButton">${option}</button>`;
       });
       document.getElementById("questionContainer").innerHTML = questionHTML + optionsHTML;
-      document.getElementById("feedback").innerText = "";
       MathJax.typeset(); // 수식 렌더링
 
       // 옵션 버튼 클릭 이벤트 등록
@@ -285,16 +293,16 @@
 
       // 에너지바 초기화 및 타이머 시작 (시간 제한이 있을 때만)
       if (questionTimeLimit > 0) {
+        document.getElementById("energyContainer").style.display = "block";
         startQuestionTimer(questionTimeLimit);
       } else {
-        // 시간 제한 없음: 에너지바를 숨김
+        // 시간 제한 없음: 에너지바 숨김
         document.getElementById("energyContainer").style.display = "none";
       }
     }
 
     // 질문별 타이머 (에너지바)
     function startQuestionTimer(limitSeconds) {
-      document.getElementById("energyContainer").style.display = "block";
       const energyBar = document.getElementById("energyBar");
       const startTime = Date.now();
       questionTimerInterval = setInterval(function() {
@@ -312,10 +320,11 @@
     // 답안 처리
     function handleAnswer(selected) {
       clearInterval(questionTimerInterval);
-      // 시간 제한이 없는 경우에도 ensure 에너지바가 full next time
+      // 에너지바 초기화
       document.getElementById("energyBar").style.width = "100%";
       const feedbackDiv = document.getElementById("feedback");
-      // 정답 확인
+
+      // 정답 판정
       if (selected === null) {
         feedbackDiv.innerHTML = "시간 초과! 정답: " + currentQuestionObj.answer;
         lives--;
@@ -328,13 +337,22 @@
       }
       document.getElementById("scoreDisplay").innerText = "점수: " + score;
       document.getElementById("livesDisplay").innerText = "남은 기회: " + lives;
-      MathJax.typeset(); // 렌더링
+      MathJax.typeset(); // 수식 렌더링
 
-      // 3번 틀리면 게임 종료
-      if (lives <= 0) {
-        setTimeout(gameOver, 1000);
+      // 기회가 남아있다면 "다음문제" 버튼 생성 (답안 확인 후)
+      if (lives > 0) {
+        // 약간의 딜레이 후 버튼 생성 (0.5초)
+        setTimeout(function() {
+          const nextButtonHTML = '<button id="nextButton" class="optionButton">다음문제</button>';
+          document.getElementById("nextQuestionContainer").innerHTML = nextButtonHTML;
+          document.getElementById("nextButton").addEventListener("click", function() {
+            document.getElementById("nextQuestionContainer").innerHTML = "";
+            nextQuestion();
+          });
+        }, 500);
       } else {
-        setTimeout(nextQuestion, 1000);
+        // 기회가 0이면 1초 후 게임 종료
+        setTimeout(gameOver, 1000);
       }
     }
 
